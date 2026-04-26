@@ -213,9 +213,26 @@ class VieNeuTTSCloneNode:
             ref_path = f.name
         try:
             _comfy_to_wav_file(ref_audio, ref_path)
-            infer_kwargs: dict = {"text": text, "ref_audio": ref_path}
-            if ref_text.strip():
-                infer_kwargs["ref_text"] = ref_text.strip()
+
+            if mode == "standard":
+                # standard mode: encode audio → ref_codes first, then infer
+                if not ref_text.strip():
+                    raise ValueError(
+                        "[VieNeu-TTS] 'ref_text' is required for standard mode. "
+                        "Please provide the transcript of your reference audio."
+                    )
+                ref_codes = tts.encode_reference(ref_path)
+                infer_kwargs: dict = {
+                    "text": text,
+                    "ref_codes": ref_codes,
+                    "ref_text": ref_text.strip(),
+                }
+            else:
+                # turbo / turbo_gpu: pass ref_audio path directly
+                infer_kwargs = {"text": text, "ref_audio": ref_path}
+                if ref_text.strip():
+                    infer_kwargs["ref_text"] = ref_text.strip()
+
             audio = _run_infer_to_comfy(tts, infer_kwargs)
         finally:
             try:
