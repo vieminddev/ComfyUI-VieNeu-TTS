@@ -1,10 +1,39 @@
 import os
+import re
+import json
 import tempfile
 
 import numpy as np
 import soundfile as sf
 import torch
 import torch.nn.functional as F
+
+# ---------------------------------------------------------------------------
+# Built-in English → Vietnamese phonetic dictionary
+# ---------------------------------------------------------------------------
+_DEFAULT_EN_VI = {
+    # Abbreviations
+    "AI": "Ây Ai", "GPU": "Ghi Pi U", "CPU": "Xê Pi U",
+    "API": "Ây Pi Ai", "UI": "U Ai", "UX": "U Éch",
+    "SEO": "Ét E Âu", "URL": "U A Eo", "LLM": "Eo Eo Em",
+    "TTS": "Tê Tê Ét", "ML": "Em Eo", "VR": "Vi A",
+    # Tech/social
+    "video": "vi-đi-ô", "viral": "vai-rồ", "content": "con-ten",
+    "online": "on-lai", "offline": "of-lai", "model": "mô-đồ",
+    "workflow": "uốc-phờ-lâu", "prompt": "prom", "token": "tô-ken",
+    "chatbot": "chat-bot", "dataset": "đây-ta-set", "podcast": "pốt-cast",
+    "livestream": "lai-xờ-trim", "hashtag": "hash-tag",
+    "feedback": "phít-bác", "update": "áp-đết",
+    "upload": "áp-lâu", "download": "đao-lâu",
+    "website": "wép-sai", "email": "i-meo", "server": "sơ-vờ",
+    # AI/GenAI terms
+    "Generative": "Gien-ơ-rây-típ", "generative": "gien-ơ-rây-típ",
+    "Text-to-video": "Tếch tu vi-đi-ô", "text-to-video": "tếch tu vi-đi-ô",
+    "Text-to-speech": "Tếch tu spít", "ComfyUI": "Com-fy U Ai",
+    "Alibaba": "A-li-ba-ba", "Google": "Gu-gồ", "OpenAI": "Âu-pen Ây Ai",
+    "ChatGPT": "Chat Ghi Pi Tê", "Midjourney": "Mít-giơ-ni",
+    "Stable Diffusion": "Xtây-bồ Đi-phu-zhơn",
+}
 
 # ---------------------------------------------------------------------------
 # Voice list — populated dynamically after first model load.
@@ -154,6 +183,56 @@ def _run_infer_to_comfy(tts, infer_kwargs: dict) -> dict:
             os.unlink(tmp_path)
         except OSError:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Node: VieNeuTTSTextNorm  (English → Vietnamese phonetic normalization)
+# ---------------------------------------------------------------------------
+
+def _normalize_text(text: str, extra_json: str = "") -> str:
+    replacements = dict(_DEFAULT_EN_VI)
+    if extra_json.strip():
+        try:
+            replacements.update(json.loads(extra_json))
+        except json.JSONDecodeError as e:
+            print(f"[VieNeu-TTS] Invalid custom_replacements JSON: {e}")
+    # Sort longest key first to avoid partial replacements
+    for src, dst in sorted(replacements.items(), key=lambda x: -len(x[0])):
+        text = re.sub(re.escape(src), dst, text)
+    return text
+
+
+class VieNeuTTSTextNormNode:
+    """Normalize English words in text to Vietnamese phonetics before TTS."""
+
+    CATEGORY = "VieNeu/TTS"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
+    FUNCTION = "normalize"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "text": ("STRING", {
+                    "multiline": True,
+                    "default": "",
+                    "placeholder": "Văn bản chứa từ tiếng Anh…",
+                }),
+            },
+            "optional": {
+                "custom_replacements": ("STRING", {
+                    "multiline": True,
+                    "default": "",
+                    "placeholder": '{"AI": "Ây Ai", "viral": "vai-rồ"}',
+                }),
+            },
+        }
+
+    def normalize(self, text: str, custom_replacements: str = ""):
+        result = _normalize_text(text, custom_replacements)
+        print(f"[VieNeu-TTS] Normalized: {result}")
+        return (result,)
 
 
 # ---------------------------------------------------------------------------

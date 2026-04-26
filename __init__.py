@@ -11,21 +11,24 @@ try:
         VieNeuTTSNode,
         VieNeuTTSCloneNode,
         VieNeuTTSUnloadModelNode,
+        VieNeuTTSTextNormNode,
     )
 
     NODE_CLASS_MAPPINGS = {
         "VieNeuTTS": VieNeuTTSNode,
         "VieNeuTTSClone": VieNeuTTSCloneNode,
         "VieNeuTTSUnloadModel": VieNeuTTSUnloadModelNode,
+        "VieNeuTTSTextNorm": VieNeuTTSTextNormNode,
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
         "VieNeuTTS": "VieNeu TTS",
         "VieNeuTTSClone": "VieNeu TTS (Voice Clone)",
         "VieNeuTTSUnloadModel": "VieNeu TTS – Unload Model",
+        "VieNeuTTSTextNorm": "VieNeu TTS – Text Normalize",
     }
 
-    print("[VieNeu-TTS] Nodes registered: VieNeuTTS, VieNeuTTSClone, VieNeuTTSUnloadModel")
+    print("[VieNeu-TTS] Nodes registered: VieNeuTTS, VieNeuTTSClone, VieNeuTTSTextNorm, VieNeuTTSUnloadModel")
 
 except Exception as exc:  # pragma: no cover
     print(f"[VieNeu-TTS] Failed to register nodes: {exc}")
