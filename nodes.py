@@ -173,7 +173,7 @@ class VieNeuTTSCloneNode:
                         "placeholder": "Nhập văn bản cần đọc…",
                     },
                 ),
-                "ref_audio": (["AUDIO", "VHS_AUDIO"],),
+                "ref_audio": ("AUDIO",),
                 "ref_text": (
                     "STRING",
                     {
