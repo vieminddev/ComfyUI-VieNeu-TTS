@@ -106,32 +106,37 @@ def _apply_speed(audio: dict, speed: float) -> dict:
 
 
 def _auto_transcribe(audio_path: str) -> str:
-    """Auto-transcribe reference audio via transformers Whisper pipeline."""
+    """Auto-transcribe reference audio using Whisper model directly (no pipeline)."""
     try:
-        from transformers import pipeline as hf_pipeline
+        from transformers import WhisperProcessor, WhisperForConditionalGeneration
     except ImportError:
         raise RuntimeError(
             "[VieNeu-TTS] Auto-transcription requires transformers. "
             "Run: pip install transformers  —  or fill in ref_text manually."
         )
     print("[VieNeu-TTS] ref_text empty — auto-transcribing with Whisper…")
-    # Load audio manually at 16 kHz (Whisper requirement) to avoid
-    # the 'num_frames' KeyError that occurs when passing a file path directly.
+
+    # Load and resample to 16 kHz mono (Whisper requirement)
     audio_np, sr = sf.read(audio_path, dtype="float32", always_2d=False)
+    if audio_np.ndim == 2:
+        audio_np = audio_np.mean(axis=1)
     if sr != 16000:
-        import torch.nn.functional as F_resamp
         wav = torch.from_numpy(audio_np).unsqueeze(0).unsqueeze(0)
-        wav = F_resamp.interpolate(wav, size=int(len(audio_np) * 16000 / sr),
-                                   mode="linear", align_corners=False)
+        new_len = int(len(audio_np) * 16000 / sr)
+        wav = F.interpolate(wav, size=new_len, mode="linear", align_corners=False)
         audio_np = wav.squeeze().numpy()
-    device = 0 if torch.cuda.is_available() else -1
-    pipe = hf_pipeline(
-        "automatic-speech-recognition",
-        model="openai/whisper-base",
-        device=device,
-    )
-    result = pipe({"array": audio_np, "sampling_rate": 16000})
-    transcript = result["text"].strip()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    processor = WhisperProcessor.from_pretrained("openai/whisper-base")
+    model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base").to(device)
+
+    inputs = processor(audio_np, sampling_rate=16000, return_tensors="pt")
+    input_features = inputs.input_features.to(device)
+
+    with torch.no_grad():
+        predicted_ids = model.generate(input_features)
+
+    transcript = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
     print(f"[VieNeu-TTS] Transcript: {transcript}")
     return transcript
 
