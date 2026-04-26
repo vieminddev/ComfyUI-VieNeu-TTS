@@ -115,13 +115,22 @@ def _auto_transcribe(audio_path: str) -> str:
             "Run: pip install transformers  —  or fill in ref_text manually."
         )
     print("[VieNeu-TTS] ref_text empty — auto-transcribing with Whisper…")
+    # Load audio manually at 16 kHz (Whisper requirement) to avoid
+    # the 'num_frames' KeyError that occurs when passing a file path directly.
+    audio_np, sr = sf.read(audio_path, dtype="float32", always_2d=False)
+    if sr != 16000:
+        import torch.nn.functional as F_resamp
+        wav = torch.from_numpy(audio_np).unsqueeze(0).unsqueeze(0)
+        wav = F_resamp.interpolate(wav, size=int(len(audio_np) * 16000 / sr),
+                                   mode="linear", align_corners=False)
+        audio_np = wav.squeeze().numpy()
     device = 0 if torch.cuda.is_available() else -1
     pipe = hf_pipeline(
         "automatic-speech-recognition",
         model="openai/whisper-base",
         device=device,
     )
-    result = pipe(audio_path)
+    result = pipe({"array": audio_np, "sampling_rate": 16000})
     transcript = result["text"].strip()
     print(f"[VieNeu-TTS] Transcript: {transcript}")
     return transcript
