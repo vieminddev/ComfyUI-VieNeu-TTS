@@ -106,18 +106,22 @@ def _apply_speed(audio: dict, speed: float) -> dict:
 
 
 def _auto_transcribe(audio_path: str) -> str:
-    """Auto-transcribe reference audio using Whisper when ref_text is not provided."""
+    """Auto-transcribe reference audio via transformers Whisper pipeline."""
     try:
-        import whisper
+        from transformers import pipeline as hf_pipeline
     except ImportError:
         raise RuntimeError(
-            "[VieNeu-TTS] standard mode requires ref_text. "
-            "Either fill in ref_text, or install Whisper for auto-transcription: "
-            "pip install openai-whisper"
+            "[VieNeu-TTS] Auto-transcription requires transformers. "
+            "Run: pip install transformers  —  or fill in ref_text manually."
         )
     print("[VieNeu-TTS] ref_text empty — auto-transcribing with Whisper…")
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_path)
+    device = 0 if torch.cuda.is_available() else -1
+    pipe = hf_pipeline(
+        "automatic-speech-recognition",
+        model="openai/whisper-base",
+        device=device,
+    )
+    result = pipe(audio_path)
     transcript = result["text"].strip()
     print(f"[VieNeu-TTS] Transcript: {transcript}")
     return transcript
