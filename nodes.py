@@ -147,9 +147,11 @@ class VieNeuTTSNode:
                     "default": 1.0, "min": 0.5, "max": 2.0,
                     "step": 0.05, "display": "slider",
                 }),
+            },
+            "optional": {
                 "mode": (MODE_OPTIONS, {"default": "turbo"}),
                 "device": (DEVICE_OPTIONS, {"default": "cpu"}),
-            }
+            },
         }
 
     def generate(self, text: str, voice: str, speed: float,
@@ -193,9 +195,11 @@ class VieNeuTTSCloneNode:
                     "default": 1.0, "min": 0.5, "max": 2.0,
                     "step": 0.05, "display": "slider",
                 }),
+            },
+            "optional": {
                 "mode": (MODE_OPTIONS, {"default": "turbo"}),
                 "device": (DEVICE_OPTIONS, {"default": "cpu"}),
-            }
+            },
         }
 
     def clone_voice(self, text: str, ref_audio: dict, ref_text: str,
