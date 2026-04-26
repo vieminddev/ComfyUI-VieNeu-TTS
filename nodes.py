@@ -7,17 +7,16 @@ import torch
 import torch.nn.functional as F
 
 # ---------------------------------------------------------------------------
-# Preset voice definitions
-# Keys are display labels; values are the IDs expected by vieneu SDK.
+# Voice list — populated dynamically after first model load.
+# Fallback matches the voices shipped with VieNeu-TTS-v2-Turbo-GGUF.
+# The SDK uses the full display name as the voice ID.
 # ---------------------------------------------------------------------------
-PRESET_VOICES = {
-    "Bình (Nam – Bắc)": "binh",
-    "Tuyên (Nam – Bắc)": "tuyen",
-    "Nguyên (Nam – Nam)": "nguyen",
-    "Hương (Nữ – Bắc)": "huong",
-    "Ngọc (Nữ – Bắc)": "ngoc",
-    "Đoạn (Nữ – Nam)": "doan",
-}
+_VOICE_IDS: list = [
+    "Bích Ngọc (Nữ - Miền Bắc)",
+    "Phạm Tuyên (Nam - Miền Bắc)",
+    "Thục Đoan (Nữ - Miền Nam)",
+    "Xuân Vĩnh (Nam - Miền Nam)",
+]
 
 # ---------------------------------------------------------------------------
 # Lazy singleton model loader
@@ -26,7 +25,7 @@ _tts_instance = None
 
 
 def _get_tts():
-    global _tts_instance
+    global _tts_instance, _VOICE_IDS
     if _tts_instance is None:
         try:
             from vieneu import Vieneu
@@ -37,6 +36,11 @@ def _get_tts():
             ) from exc
         print("[VieNeu-TTS] Loading model… (first run may take a moment)")
         _tts_instance = Vieneu()
+        try:
+            _VOICE_IDS = [vid for _, vid in _tts_instance.list_preset_voices()]
+            print(f"[VieNeu-TTS] Loaded {len(_VOICE_IDS)} voices: {_VOICE_IDS}")
+        except Exception as e:
+            print(f"[VieNeu-TTS] Could not refresh voice list: {e}")
         print("[VieNeu-TTS] Model ready.")
     return _tts_instance
 
@@ -109,6 +113,7 @@ class VieNeuTTSNode:
 
     @classmethod
     def INPUT_TYPES(cls):
+        voices = _VOICE_IDS if _VOICE_IDS else ["(load model first)"]
         return {
             "required": {
                 "text": (
@@ -119,10 +124,7 @@ class VieNeuTTSNode:
                         "placeholder": "Nhập văn bản cần đọc…",
                     },
                 ),
-                "voice": (
-                    list(PRESET_VOICES.keys()),
-                    {"default": list(PRESET_VOICES.keys())[0]},
-                ),
+                "voice": (voices, {"default": voices[0]}),
                 "speed": (
                     "FLOAT",
                     {
@@ -141,9 +143,7 @@ class VieNeuTTSNode:
             raise ValueError("[VieNeu-TTS] Text input is empty.")
 
         tts = _get_tts()
-        voice_id = PRESET_VOICES[voice]
-
-        voice_data = tts.get_preset_voice(voice_id)
+        voice_data = tts.get_preset_voice(voice)
         audio = _run_infer_to_comfy(tts, {"text": text, "voice": voice_data})
         audio = _apply_speed(audio, speed)
         return (audio,)
