@@ -18,21 +18,21 @@ _DEFAULT_EN_VI = {
     "SEO": "Ét E Âu", "URL": "U A Eo", "LLM": "Eo Eo Em",
     "TTS": "Tê Tê Ét", "ML": "Em Eo", "VR": "Vi A",
     # Tech/social
-    "video": "vi-đi-ô", "viral": "vai-rồ", "content": "con-ten",
-    "online": "on-lai", "offline": "of-lai", "model": "mô-đồ",
-    "workflow": "uốc-phờ-lâu", "prompt": "prom", "token": "tô-ken",
-    "chatbot": "chat-bot", "dataset": "đây-ta-set", "podcast": "pốt-cast",
-    "livestream": "lai-xờ-trim", "hashtag": "hash-tag",
-    "feedback": "phít-bác", "update": "áp-đết",
-    "upload": "áp-lâu", "download": "đao-lâu",
-    "website": "wép-sai", "email": "i-meo", "server": "sơ-vờ",
+    "video": "vi đi ô", "viral": "vai rồ", "content": "con ten",
+    "online": "on lai", "offline": "of lai", "model": "mô đồ",
+    "workflow": "uốc phờ lâu", "prompt": "prom", "token": "tô ken",
+    "chatbot": "chat bot", "dataset": "đây ta set", "podcast": "pốt cast",
+    "livestream": "lai xờ trim", "hashtag": "hash tag",
+    "feedback": "phít bác", "update": "áp đết",
+    "upload": "áp lâu", "download": "đao lâu",
+    "website": "wép sai", "email": "i meo", "server": "sơ vờ",
     # AI/GenAI terms
-    "Generative": "Gien-ơ-rây-típ", "generative": "gien-ơ-rây-típ",
-    "Text-to-video": "Tếch tu vi-đi-ô", "text-to-video": "tếch tu vi-đi-ô",
-    "Text-to-speech": "Tếch tu spít", "ComfyUI": "Com-fy U Ai",
-    "Alibaba": "A-li-ba-ba", "Google": "Gu-gồ", "OpenAI": "Âu-pen Ây Ai",
-    "ChatGPT": "Chat Ghi Pi Tê", "Midjourney": "Mít-giơ-ni",
-    "Stable Diffusion": "Xtây-bồ Đi-phu-zhơn",
+    "Generative": "Gien ơ rây típ", "generative": "gien ơ rây típ",
+    "Text-to-video": "Tếch tu vi đi ô", "text-to-video": "tếch tu vi đi ô",
+    "Text-to-speech": "Tếch tu spít", "ComfyUI": "Com fy U Ai",
+    "Alibaba": "A li ba ba", "Google": "Gu gồ", "OpenAI": "Âu pen Ây Ai",
+    "ChatGPT": "Chat Ghi Pi Tê", "Midjourney": "Mít giơ ni",
+    "Stable Diffusion": "Xtây bồ Đi phu zhơn",
 }
 
 # ---------------------------------------------------------------------------
@@ -199,6 +199,8 @@ def _normalize_text(text: str, extra_json: str = "") -> str:
     # Sort longest key first to avoid partial replacements
     for src, dst in sorted(replacements.items(), key=lambda x: -len(x[0])):
         text = re.sub(re.escape(src), dst, text)
+    # Replace any remaining hyphens/dashes with a space so TTS doesn't read "gạch ngang"
+    text = re.sub(r"\s*[-–—]\s*", " ", text)
     return text
 
 
