@@ -1,2 +1,3 @@
 vieneu
 soundfile
+openai-whisper

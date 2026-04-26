@@ -105,6 +105,24 @@ def _apply_speed(audio: dict, speed: float) -> dict:
     return {"waveform": stretched, "sample_rate": audio["sample_rate"]}
 
 
+def _auto_transcribe(audio_path: str) -> str:
+    """Auto-transcribe reference audio using Whisper when ref_text is not provided."""
+    try:
+        import whisper
+    except ImportError:
+        raise RuntimeError(
+            "[VieNeu-TTS] standard mode requires ref_text. "
+            "Either fill in ref_text, or install Whisper for auto-transcription: "
+            "pip install openai-whisper"
+        )
+    print("[VieNeu-TTS] ref_text empty — auto-transcribing with Whisper…")
+    model = whisper.load_model("base")
+    result = model.transcribe(audio_path)
+    transcript = result["text"].strip()
+    print(f"[VieNeu-TTS] Transcript: {transcript}")
+    return transcript
+
+
 def _run_infer_to_comfy(tts, infer_kwargs: dict) -> dict:
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         tmp_path = f.name
@@ -216,16 +234,12 @@ class VieNeuTTSCloneNode:
 
             if mode == "standard":
                 # standard mode: encode audio → ref_codes first, then infer
-                if not ref_text.strip():
-                    raise ValueError(
-                        "[VieNeu-TTS] 'ref_text' is required for standard mode. "
-                        "Please provide the transcript of your reference audio."
-                    )
+                transcript = ref_text.strip() or _auto_transcribe(ref_path)
                 ref_codes = tts.encode_reference(ref_path)
                 infer_kwargs: dict = {
                     "text": text,
                     "ref_codes": ref_codes,
-                    "ref_text": ref_text.strip(),
+                    "ref_text": transcript,
                 }
             else:
                 # turbo / turbo_gpu: pass ref_audio path directly
